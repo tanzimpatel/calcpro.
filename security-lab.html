@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Local defensive cybersecurity training lab for authorized learning.">
+  <title>CalcPro Security Lab</title>
+  <style>
+    :root { color-scheme: dark; font-family: system-ui, sans-serif; background: #08111f; color: #eef5ff; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: radial-gradient(circle at 50% -20%, #1e3a5f, #08111f 55%); }
+    main { width: min(900px, calc(100% - 30px)); margin: 0 auto; padding: 30px 0; }
+    header { display: flex; justify-content: space-between; align-items: start; gap: 20px; margin-bottom: 22px; }
+    h1, h2, p { margin-top: 0; }
+    h1 { margin-bottom: 7px; }
+    .intro { color: #aebfd4; line-height: 1.5; }
+    .badge { padding: 7px 10px; border: 1px solid #306347; border-radius: 999px; color: #8fe0a1; font-size: 12px; white-space: nowrap; }
+    .card { margin: 14px 0; padding: 20px; border: 1px solid #263b58; border-radius: 16px; background: rgba(10,19,33,.88); }
+    .card h2 { margin-bottom: 8px; font-size: 18px; }
+    .card p, li { color: #aebfd4; font-size: 14px; line-height: 1.5; }
+    input, textarea, select { width: 100%; margin: 8px 0; padding: 11px; border: 1px solid #405875; border-radius: 8px; background: #111f33; color: #fff; font: inherit; }
+    textarea { min-height: 90px; resize: vertical; }
+    button { padding: 10px 14px; border: 0; border-radius: 8px; background: #ff9500; color: #111; font-weight: 700; cursor: pointer; }
+    .result { margin-top: 12px; padding: 12px; border-radius: 8px; background: #162940; color: #dbeafe; line-height: 1.45; }
+    .good { color: #8fe0a1; } .warn { color: #ffd27a; } .bad { color: #ff9b9b; }
+    .checklist { display: grid; gap: 8px; margin: 12px 0 0; }
+    label { color: #dbe7f5; font-size: 13px; }
+    footer { color: #7890ad; font-size: 12px; margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div><h1>CalcPro Security Lab</h1><p class="intro">Practice defensive security in a safe, local-only environment.</p></div>
+      <span class="badge">AUTHORIZED TRAINING ONLY</span>
+    </header>
+
+    <section class="card">
+      <h2>Rules of engagement</h2>
+      <ul>
+        <li>Use these exercises only on systems you own or have explicit permission to test.</li>
+        <li>This lab does not scan networks, attack websites, exploit real targets, or send traffic to third parties.</li>
+        <li>Use fictional data. Never enter real passwords, tokens, or private information.</li>
+      </ul>
+    </section>
+
+    <section class="card">
+      <h2>1. Password hygiene</h2>
+      <p>Learn why length and uniqueness matter. The lab checks locally and never sends your text anywhere.</p>
+      <label for="password">Use a fictional test password</label>
+      <input id="password" type="password" autocomplete="off" placeholder="Example: fictional test password">
+      <button id="checkPassword">Check locally</button>
+      <div id="passwordResult" class="result">Enter a fictional password to begin.</div>
+    </section>
+
+    <section class="card">
+      <h2>2. Security-header review</h2>
+      <p>Paste headers from a system you are authorized to review. This checker stays in your browser.</p>
+      <textarea id="headers" placeholder="Example:
+Content-Security-Policy: default-src 'self'
+X-Content-Type-Options: nosniff
+Referrer-Policy: strict-origin-when-cross-origin"></textarea>
+      <button id="checkHeaders">Review headers</button>
+      <div id="headerResult" class="result">Recommended headers: CSP, HSTS, X-Content-Type-Options, Referrer-Policy, and Permissions-Policy.</div>
+    </section>
+
+    <section class="card">
+      <h2>3. Threat-model checklist</h2>
+      <p>Identify defensive controls before releasing a website.</p>
+      <div class="checklist">
+        <label><input type="checkbox"> All traffic uses HTTPS.</label>
+        <label><input type="checkbox"> Secrets are kept out of source code.</label>
+        <label><input type="checkbox"> User input is validated and safely rendered.</label>
+        <label><input type="checkbox"> Authentication has rate limits and secure sessions.</label>
+        <label><input type="checkbox"> Logs avoid passwords, tokens, and personal data.</label>
+        <label><input type="checkbox"> Backups and dependency updates are tested.</label>
+      </div>
+      <div id="modelResult" class="result">Complete the checklist to assess readiness.</div>
+    </section>
+
+    <footer>Local training tool. It provides educational checks, not a penetration test or a guarantee of security.</footer>
+  </main>
+  <script>
+    const passwordResult = document.querySelector('#passwordResult');
+    document.querySelector('#checkPassword').onclick = () => {
+      const value = document.querySelector('#password').value;
+      const checks = [value.length >= 14, /[a-z]/.test(value), /[A-Z]/.test(value), /\d/.test(value), /[^A-Za-z0-9]/.test(value)];
+      const score = checks.filter(Boolean).length;
+      passwordResult.className = `result ${score >= 4 ? 'good' : score >= 2 ? 'warn' : 'bad'}`;
+      passwordResult.textContent = !value ? 'Enter a fictional password.' : `${score}/5 checks passed. Use a long, unique passphrase and never reuse it.`;
+    };
+    document.querySelector('#checkHeaders').onclick = () => {
+      const value = document.querySelector('#headers').value.toLowerCase();
+      const required = ['content-security-policy', 'strict-transport-security', 'x-content-type-options', 'referrer-policy', 'permissions-policy'];
+      const missing = required.filter(header => !value.includes(header));
+      const result = document.querySelector('#headerResult');
+      result.className = `result ${missing.length ? 'warn' : 'good'}`;
+      result.textContent = missing.length ? `Missing or unrecognized: ${missing.join(', ')}.` : 'Core defensive headers were found. Confirm their values against your deployment needs.';
+    };
+    document.querySelectorAll('.checklist input').forEach(input => input.onchange = () => {
+      const total = document.querySelectorAll('.checklist input').length;
+      const complete = document.querySelectorAll('.checklist input:checked').length;
+      const result = document.querySelector('#modelResult');
+      result.className = `result ${complete === total ? 'good' : 'warn'}`;
+      result.textContent = `${complete}/${total} controls reviewed.${complete === total ? ' Good baseline—continue with testing and monitoring.' : ' Review the remaining controls before publishing.'}`;
+    });
+  </script>
+</body>
+</html>

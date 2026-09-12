@@ -1,0 +1,535 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Calculator</title>
+  <style>
+    :root { font-family: Arial, Helvetica, sans-serif; color-scheme: dark; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #202124; }
+    .calculator { width: 320px; height: 568px; padding: 17px; background: #000; color: #fff; }
+    .topbar { height: 35px; display: flex; justify-content: space-between; align-items: start; }
+    .top-button { width: 34px; height: 34px; border: 0; border-radius: 50%; background: #151515; color: #ddd; cursor: pointer; font-size: 18px; }
+    .menu { font-size: 19px; line-height: 18px; }
+    .menu::before { content: "☷"; }
+    .calc-icon { font-size: 16px; }
+    .display { height: 157px; display: flex; flex-direction: column; align-items: flex-end; justify-content: end; padding: 0 3px 9px; overflow: hidden; }
+    .expression { color: #858585; font-size: 20px; min-height: 27px; white-space: nowrap; }
+    .result { font-size: 48px; line-height: 54px; font-weight: 400; white-space: nowrap; }
+    .keys { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+    button.key { width: 62px; height: 62px; border: 0; border-radius: 50%; color: #f5f5f5; background: #303030; font-size: 28px; font-weight: 400; cursor: pointer; }
+    button.key:hover { filter: brightness(1.2); }
+    button.key:active { filter: brightness(1.45); }
+    .operator { background: #ff9500 !important; color: #fff !important; }
+    .utility { background: #686868 !important; }
+    .zero { grid-column: 2; }
+    .sign { font-size: 22px !important; }
+    .backspace { font-size: 23px !important; }
+    .panel { position: fixed; inset: 0; display: none; place-items: center; overflow-y: auto; padding: 12px 0; background: rgba(0,0,0,.72); z-index: 2; }
+    .panel.open { display: grid; }
+    .panel-card { width: 286px; max-height: 520px; padding: 20px; border: 1px solid #3e3e3e; border-radius: 18px; background: #171717; color: #eee; box-shadow: 0 12px 50px #000; }
+    .panel-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+    .panel-head h2 { margin: 0; font-size: 22px; }
+    .close { border: 0; background: transparent; color: #aaa; font-size: 24px; cursor: pointer; }
+    .history-list { max-height: 360px; overflow: auto; }
+    .history-item { padding: 11px 0; border-bottom: 1px solid #333; }
+    .history-expression { color: #999; font-size: 14px; }
+    .history-answer { margin-top: 4px; font-size: 22px; }
+    .empty { padding: 25px 0; color: #999; text-align: center; }
+    .panel-action { width: 100%; padding: 11px; margin-top: 16px; border: 0; border-radius: 9px; background: #ff9500; color: #fff; font-size: 16px; cursor: pointer; }
+    .setting { display: flex; justify-content: space-between; align-items: center; padding: 14px 0; border-bottom: 1px solid #333; }
+    .setting label { font-size: 15px; }
+    select, input[type="checkbox"] { accent-color: #ff9500; }
+    select { padding: 5px; border: 1px solid #555; border-radius: 5px; background: #292929; color: #fff; }
+    .currency-card { width: 310px; }
+    .currency-form { display: grid; gap: 10px; }
+    .currency-form label { color: #aaa; font-size: 13px; }
+    .currency-form input, .currency-form select { width: 100%; padding: 12px; border: 1px solid #555; border-radius: 8px; background: #292929; color: #fff; font-size: 17px; }
+    .currency-swap { justify-self: center; width: 38px; height: 38px; border: 0; border-radius: 50%; background: #686868; color: #fff; font-size: 20px; cursor: pointer; }
+    .currency-result { margin-top: 16px; padding: 14px; border-radius: 9px; background: #292929; font-size: 24px; text-align: center; }
+    .rate-status { margin-top: 9px; color: #999; font-size: 12px; text-align: center; }
+    .budget-card { width: 330px; max-height: calc(100vh - 24px); overflow-y: auto; }
+    .budget-summary { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+    .budget-stat { padding: 10px; border-radius: 9px; background: #292929; }
+    .budget-stat small { display: block; color: #999; font-size: 12px; }
+    .budget-stat strong { display: block; margin-top: 5px; font-size: 19px; }
+    .income { color: #78d68a; } .expense { color: #ff8b8b; } .remaining { color: #ffb84d; }
+    .budget-form { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .budget-form input, .budget-form select { width: 100%; padding: 10px; border: 1px solid #555; border-radius: 7px; background: #292929; color: #fff; }
+    .budget-form .wide { grid-column: 1 / -1; }
+    .budget-list { max-height: 190px; margin-top: 12px; overflow-y: auto; }
+    .budget-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 9px 0; border-bottom: 1px solid #333; font-size: 13px; }
+    .budget-row small { display: block; color: #999; margin-top: 3px; }
+    .delete-entry { border: 0; border-radius: 5px; background: #3b2525; color: #ff9b9b; cursor: pointer; }
+    .analytics { margin: 14px 0; padding-top: 12px; border-top: 1px solid #333; }
+    .analytics h3 { margin: 0 0 10px; font-size: 16px; }
+    .analytics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .analytics-stat { padding: 9px; border-radius: 8px; background: #292929; }
+    .analytics-stat small { display: block; color: #999; font-size: 11px; }
+    .analytics-stat strong { display: block; margin-top: 4px; font-size: 16px; }
+    .chart { display: grid; gap: 7px; margin-top: 10px; }
+    .chart-row { display: grid; grid-template-columns: 78px 1fr 52px; align-items: center; gap: 6px; font-size: 11px; }
+    .chart-track { height: 9px; overflow: hidden; border-radius: 5px; background: #3a3a3a; }
+    .chart-fill { height: 100%; border-radius: inherit; background: #ff8b8b; }
+    .trend { color: #aaa; font-size: 12px; line-height: 1.4; }
+    .expense-analysis { margin-top: 12px; padding-top: 12px; border-top: 1px solid #333; }
+    .expense-analysis h3 { margin: 0 0 9px; font-size: 16px; }
+    .expense-insight { margin: 7px 0; color: #ccc; font-size: 12px; line-height: 1.35; }
+    .expense-insight strong { color: #fff; }
+    .percentage-bar { height: 7px; margin-top: 4px; overflow: hidden; border-radius: 4px; background: #3a3a3a; }
+    .percentage-bar span { display: block; height: 100%; border-radius: inherit; background: #ff9500; }
+    .engineering-card { width: 330px; }
+    .engineering-form { display: grid; gap: 9px; }
+    .engineering-form label { color: #aaa; font-size: 13px; }
+    .engineering-form select, .engineering-form input { width: 100%; padding: 11px; border: 1px solid #555; border-radius: 8px; background: #292929; color: #fff; font-size: 16px; }
+    .engineering-inputs { display: grid; gap: 8px; }
+    .engineering-result { margin-top: 15px; padding: 15px; border-radius: 9px; background: #24344d; color: #fff; font-size: 23px; text-align: center; }
+    .engineering-note { margin-top: 9px; color: #aaa; font-size: 12px; line-height: 1.4; }
+    .budget-help { margin-bottom: 14px; padding: 11px; border-radius: 9px; background: #24344d; color: #dce8f8; font-size: 12px; line-height: 1.45; }
+    .budget-help strong { color: #fff; }
+    .budget-step { margin: 5px 0; }
+    .budget-form-title { margin: 12px 0 7px; color: #fff; font-size: 14px; font-weight: 700; }
+    .budget-form input::placeholder { color: #999; }
+    .analytics details { margin-top: 10px; }
+    .analytics summary { color: #ffb84d; cursor: pointer; font-size: 14px; font-weight: 700; }
+    body.light { background: #d8d8d8; }
+    body.light .calculator { background: #f6f6f6; color: #111; }
+    body.light .top-button { background: #ddd; color: #222; }
+    body.light .result { color: #111; }
+    body.light .expression { color: #777; }
+    body.light button.key { background: #ddd; color: #111; }
+    body.light .utility { background: #aaa !important; }
+    @media (max-height: 620px) { .calculator { transform: scale(.88); } }
+  </style>
+</head>
+<body>
+  <main class="calculator" aria-label="Calculator">
+    <div class="topbar">
+      <button id="historyButton" class="top-button menu" aria-label="History"></button>
+      <button id="settingsButton" class="top-button calc-icon" aria-label="Settings">▣</button>
+    </div>
+    <section class="display" aria-live="polite">
+      <div id="expression" class="expression"></div>
+      <div id="result" class="result">0</div>
+    </section>
+    <section class="keys">
+      <button class="key utility backspace" data-action="backspace" aria-label="Backspace">⌫</button>
+      <button class="key utility" data-action="clear">AC</button>
+      <button class="key utility" data-action="percent">%</button>
+      <button class="key operator" data-op="÷">÷</button>
+      <button class="key" data-number="7">7</button><button class="key" data-number="8">8</button><button class="key" data-number="9">9</button><button class="key operator" data-op="×">×</button>
+      <button class="key" data-number="4">4</button><button class="key" data-number="5">5</button><button class="key" data-number="6">6</button><button class="key operator" data-op="−">−</button>
+      <button class="key" data-number="1">1</button><button class="key" data-number="2">2</button><button class="key" data-number="3">3</button><button class="key operator" data-op="+">+</button>
+      <button class="key sign" data-action="sign">+/−</button><button class="key zero" data-number="0">0</button><button class="key" data-action="decimal">.</button><button class="key operator" data-action="equals">=</button>
+    </section>
+  </main>
+  <div id="historyPanel" class="panel" role="dialog" aria-label="Calculation history">
+    <section class="panel-card">
+      <div class="panel-head"><h2>History</h2><button class="close" data-close="historyPanel">×</button></div>
+      <div id="historyList" class="history-list"></div>
+      <button id="clearHistory" class="panel-action">Clear history</button>
+    </section>
+  </div>
+  <div id="settingsPanel" class="panel" role="dialog" aria-label="Calculator settings">
+    <section class="panel-card">
+      <div class="panel-head"><h2>Settings</h2><button class="close" data-close="settingsPanel">×</button></div>
+      <div class="setting"><label for="theme">Theme</label><select id="theme"><option value="dark">Dark</option><option value="light">Light</option></select></div>
+      <div class="setting"><label for="precision">Decimal places</label><select id="precision"><option value="auto">Auto</option><option value="2">2</option><option value="4">4</option><option value="6">6</option></select></div>
+      <div class="setting"><label for="sound">Button sound</label><input id="sound" type="checkbox"></div>
+      <button class="panel-action" data-close="settingsPanel">Done</button>
+    </section>
+  </div>
+  <div id="currencyPanel" class="panel" role="dialog" aria-label="Currency converter">
+    <section class="panel-card currency-card">
+      <div class="panel-head"><h2>Currency</h2><button class="close" data-close="currencyPanel">×</button></div>
+      <div class="currency-form">
+        <label for="currencyAmount">Amount</label>
+        <input id="currencyAmount" type="number" min="0" step="any" value="1">
+        <label for="fromCurrency">From</label>
+        <select id="fromCurrency"></select>
+        <button id="swapCurrency" class="currency-swap" aria-label="Swap currencies">⇅</button>
+        <label for="toCurrency">To</label>
+        <select id="toCurrency"></select>
+      </div>
+      <div id="currencyResult" class="currency-result">1 USD = —</div>
+      <div id="rateStatus" class="rate-status">Rates not loaded</div>
+      <button id="refreshRates" class="panel-action">Update currency values</button>
+    </section>
+  </div>
+  <div id="budgetPanel" class="panel" role="dialog" aria-label="Budget manager">
+    <section class="panel-card budget-card">
+      <div class="panel-head"><h2>Budget</h2><button class="close" data-close="budgetPanel">×</button></div>
+      <div class="budget-help">
+        <strong>How to use your budget</strong>
+        <div class="budget-step">1. Set your monthly spending limit.</div>
+        <div class="budget-step">2. Add money you receive as <strong>Income</strong>.</div>
+        <div class="budget-step">3. Add purchases as <strong>Expense</strong>.</div>
+        <div class="budget-step">The app subtracts expenses from income and shows what remains.</div>
+      </div>
+      <div class="budget-summary">
+        <div class="budget-stat"><small>Money received</small><strong id="budgetIncome" class="income">0</strong></div>
+        <div class="budget-stat"><small>Money spent</small><strong id="budgetExpenses" class="expense">0</strong></div>
+        <div class="budget-stat"><small>Monthly spending limit</small><strong id="budgetLimit" class="remaining">0</strong></div>
+        <div class="budget-stat"><small>Money left</small><strong id="budgetRemaining" class="remaining">0</strong></div>
+      </div>
+      <div class="budget-form-title">Add money or a purchase</div>
+      <div class="budget-form">
+        <input id="budgetDescription" class="wide" placeholder="What is it? e.g. Salary or Groceries" maxlength="40">
+        <input id="budgetAmount" type="number" min="0" step="0.01" placeholder="How much? (₹)">
+        <select id="budgetType"><option value="expense">Expense — money spent</option><option value="income">Income — money received</option></select>
+        <select id="budgetCategory"><option>Housing</option><option>Food</option><option>Transport</option><option>Utilities</option><option>Health</option><option>Entertainment</option><option>Shopping</option><option>Other</option></select>
+        <input id="budgetLimitInput" type="number" min="0" step="0.01" placeholder="Monthly limit (₹) — set this first" class="wide">
+      </div>
+      <button id="setBudgetLimit" class="panel-action">Set monthly limit</button>
+      <button id="addBudgetEntry" class="panel-action">Save income or expense</button>
+      <div class="analytics">
+        <details>
+          <summary>Show budget analytics</summary>
+          <h3>Budget analytics</h3>
+        <div class="analytics-grid">
+          <div class="analytics-stat"><small>Budget used</small><strong id="budgetUsed">0%</strong></div>
+          <div class="analytics-stat"><small>Top category</small><strong id="topCategory">—</strong></div>
+        </div>
+        <div id="categoryChart" class="chart"></div>
+        <div id="budgetTrend" class="trend"></div>
+        <div class="expense-analysis">
+          <h3>Expense analysis</h3>
+          <div id="expenseInsights"></div>
+        </div>
+        </details>
+      </div>
+      <div id="budgetList" class="budget-list"></div>
+      <button id="clearBudget" class="panel-action">Clear all entries</button>
+    </section>
+  </div>
+  <div id="engineeringPanel" class="panel" role="dialog" aria-label="Physics and engineering calculator">
+    <section class="panel-card engineering-card">
+      <div class="panel-head"><h2>Physics & Engineering</h2><button class="close" data-close="engineeringPanel">×</button></div>
+      <div class="engineering-form">
+        <label for="engineeringFormula">Choose a formula</label>
+        <select id="engineeringFormula">
+          <option value="kinematicsV">Final velocity: v = u + at</option>
+          <option value="kinematicsS">Distance: s = ut + ½at²</option>
+          <option value="force">Force: F = ma</option>
+          <option value="work">Work: W = Fd</option>
+          <option value="power">Power: P = W ÷ t</option>
+          <option value="ohms">Ohm's law: V = IR</option>
+          <option value="ohmsCurrent">Current: I = V ÷ R</option>
+          <option value="ohmsResistance">Resistance: R = V ÷ I</option>
+          <option value="quadratic">Quadratic positive root</option>
+          <option value="scientific">Scientific math: sin, cos, tan, √, ln</option>
+        </select>
+        <div id="engineeringInputs" class="engineering-inputs"></div>
+      </div>
+      <div id="engineeringResult" class="engineering-result">Enter values to calculate</div>
+      <div id="engineeringNote" class="engineering-note">Use SI units: metres, seconds, kilograms, newtons, joules, watts, volts, amps, and ohms.</div>
+      <button id="calculateEngineering" class="panel-action">Calculate</button>
+    </section>
+  </div>
+  <script>
+    const expression = document.querySelector('#expression');
+    const result = document.querySelector('#result');
+    let value = '0', stored = null, operator = null, waiting = false, shown = '';
+    const settings = JSON.parse(localStorage.getItem('calculatorSettings') || '{"theme":"dark","precision":"auto","sound":false}');
+    const history = JSON.parse(localStorage.getItem('calculatorHistory') || '[]');
+    const currencies = {
+      USD: 'US Dollar', EUR: 'Euro', GBP: 'British Pound', JPY: 'Japanese Yen',
+      CNY: 'Chinese Yuan', INR: 'Indian Rupee', BDT: 'Bangladeshi Taka',
+      CAD: 'Canadian Dollar', AUD: 'Australian Dollar', CHF: 'Swiss Franc',
+      SGD: 'Singapore Dollar', AED: 'UAE Dirham', SAR: 'Saudi Riyal',
+      ZAR: 'South African Rand', BRL: 'Brazilian Real', MXN: 'Mexican Peso',
+      KRW: 'South Korean Won', NZD: 'New Zealand Dollar', SEK: 'Swedish Krona',
+      NOK: 'Norwegian Krone', TRY: 'Turkish Lira'
+    };
+    const fallbackRates = { USD: 1, EUR: .92, GBP: .79, JPY: 157, CNY: 7.18, INR: 83.9, BDT: 119, CAD: 1.37, AUD: 1.52, CHF: .89, SGD: 1.35, AED: 3.67, SAR: 3.75, ZAR: 17.9, BRL: 5.45, MXN: 19.8, KRW: 1380, NZD: 1.65, SEK: 10.5, NOK: 10.7, TRY: 33 };
+    let rates = JSON.parse(localStorage.getItem('currencyRates') || 'null') || fallbackRates;
+    const budget = JSON.parse(localStorage.getItem('calculatorBudget') || '{"limit":0,"entries":[]}');
+    const format = n => {
+      if (!Number.isFinite(n)) return 'Error';
+      const places = settings.precision === 'auto' ? 10 : Number(settings.precision);
+      const text = String(Number(n.toFixed(places)));
+      return text.length > 12 ? n.toExponential(6) : text;
+    };
+    const render = () => { result.textContent = value; expression.textContent = shown; };
+    const save = () => {
+      localStorage.setItem('calculatorSettings', JSON.stringify(settings));
+      localStorage.setItem('calculatorHistory', JSON.stringify(history));
+    };
+    const renderHistory = () => {
+      const list = document.querySelector('#historyList');
+      list.innerHTML = history.length ? history.map(item => `<div class="history-item"><div class="history-expression">${item.expression}</div><div class="history-answer">${item.answer}</div></div>`).join('') : '<div class="empty">No calculations yet</div>';
+    };
+    const populateCurrencies = () => {
+      ['fromCurrency', 'toCurrency'].forEach(id => {
+        const select = document.querySelector(`#${id}`);
+        select.innerHTML = Object.entries(currencies).map(([code, name]) => `<option value="${code}">${code} — ${name}</option>`).join('');
+      });
+      document.querySelector('#fromCurrency').value = 'USD';
+      document.querySelector('#toCurrency').value = 'EUR';
+    };
+    const updateCurrency = () => {
+      const amount = Number(document.querySelector('#currencyAmount').value) || 0;
+      const from = document.querySelector('#fromCurrency').value, to = document.querySelector('#toCurrency').value;
+      const converted = amount / rates[from] * rates[to];
+      document.querySelector('#currencyResult').textContent = `${format(amount)} ${from} = ${format(converted)} ${to}`;
+    };
+    const showRateStatus = text => { document.querySelector('#rateStatus').textContent = text; };
+    const money = value => {
+      const amount = Number(value);
+      if (!Number.isFinite(amount)) return '₹—';
+      return new Intl.NumberFormat('en-IN', {
+        style: 'currency',
+        currency: 'INR',
+        maximumFractionDigits: settings.precision === 'auto' ? 2 : Number(settings.precision)
+      }).format(amount);
+    };
+    const percent = value => `${new Intl.NumberFormat('en-IN', {
+      maximumFractionDigits: 2
+    }).format(Number(value))}%`;
+    const escapeHtml = value => String(value).replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character]));
+    const renderBudget = () => {
+      const income = budget.entries.filter(e => e.type === 'income').reduce((sum, e) => sum + e.amount, 0);
+      const expenses = budget.entries.filter(e => e.type === 'expense').reduce((sum, e) => sum + e.amount, 0);
+      document.querySelector('#budgetIncome').textContent = money(income);
+      document.querySelector('#budgetExpenses').textContent = money(expenses);
+      document.querySelector('#budgetLimit').textContent = money(budget.limit);
+      document.querySelector('#budgetRemaining').textContent = money(income - expenses);
+      const categoryTotals = budget.entries.filter(e => e.type === 'expense').reduce((totals, entry) => {
+        totals[entry.category] = (totals[entry.category] || 0) + entry.amount;
+        return totals;
+      }, {});
+      const categories = Object.entries(categoryTotals).sort((a, b) => b[1] - a[1]);
+      const top = categories[0];
+      const used = budget.limit > 0 ? expenses / budget.limit * 100 : 0;
+      document.querySelector('#budgetUsed').textContent = budget.limit > 0 ? percent(used) : 'No limit';
+      document.querySelector('#topCategory').textContent = top ? `${top[0]} (${money(top[1])})` : '—';
+      document.querySelector('#categoryChart').innerHTML = categories.length ? categories.slice(0, 5).map(([category, amount]) => `
+        <div class="chart-row"><span>${escapeHtml(category)}</span><div class="chart-track"><div class="chart-fill" style="width:${top[1] ? Math.min(100, amount / top[1] * 100) : 0}%"></div></div><span>${money(amount)}</span></div>`).join('') : '<div class="empty">Add expenses to see category analytics</div>';
+      const balance = income - expenses;
+      document.querySelector('#budgetTrend').textContent = budget.entries.length
+        ? `Overall: ${balance >= 0 ? 'positive' : 'negative'} cash flow. ${budget.limit > 0 && used > 100 ? 'You are over the budget limit.' : budget.limit > 0 ? `${percent(100 - used)} of the budget remains.` : 'Set a budget limit to track utilization.'}`
+        : 'Add entries to see your spending trend.';
+      const expenseEntries = budget.entries.filter(e => e.type === 'expense');
+      const largest = expenseEntries.slice().sort((a, b) => b.amount - a.amount)[0];
+      const average = expenseEntries.length ? expenses / expenseEntries.length : 0;
+      const insight = document.querySelector('#expenseInsights');
+      if (!expenseEntries.length) {
+        insight.innerHTML = '<div class="empty">Add expenses to see a detailed analysis.</div>';
+      } else {
+        const categoryInsight = categories.slice(0, 4).map(([category, amount]) => {
+          const share = expenses ? amount / expenses * 100 : 0;
+          return `<div class="expense-insight"><strong>${escapeHtml(category)}</strong>: ${money(amount)} (${percent(share)})<div class="percentage-bar"><span style="width:${Math.min(100, share)}%"></span></div></div>`;
+        }).join('');
+        const advice = budget.limit > 0 && expenses > budget.limit
+          ? 'Advice: your spending is above the monthly limit. Review the largest category first.'
+          : top && expenses > 0
+            ? `Advice: ${escapeHtml(top[0])} is your largest spending category.`
+            : 'Advice: keep recording expenses to spot patterns.';
+        insight.innerHTML = `
+          <div class="expense-insight"><strong>Total spent:</strong> ${money(expenses)}</div>
+          <div class="expense-insight"><strong>Average purchase:</strong> ${money(average)} across ${expenseEntries.length} expense${expenseEntries.length === 1 ? '' : 's'}</div>
+          <div class="expense-insight"><strong>Largest purchase:</strong> ${escapeHtml(largest.description || largest.category)} — ${money(largest.amount)}</div>
+          ${categoryInsight}
+          <div class="expense-insight">${advice}</div>`;
+      }
+      const list = document.querySelector('#budgetList');
+      list.innerHTML = budget.entries.length ? budget.entries.slice().reverse().map((entry, index) => `
+        <div class="budget-row">
+          <div><strong>${escapeHtml(entry.description || entry.category)}</strong><small>${escapeHtml(entry.category)} · ${escapeHtml(entry.date)}</small></div>
+          <div class="${entry.type}">${entry.type === 'income' ? '+' : '-'}${money(entry.amount)} <button class="delete-entry" data-budget-index="${budget.entries.length - 1 - index}">×</button></div>
+        </div>`).join('') : '<div class="empty">No budget entries yet</div>';
+      list.querySelectorAll('[data-budget-index]').forEach(button => button.onclick = () => {
+        budget.entries.splice(Number(button.dataset.budgetIndex), 1); saveBudget(); renderBudget();
+      });
+    };
+    const saveBudget = () => localStorage.setItem('calculatorBudget', JSON.stringify(budget));
+    const engineeringFields = {
+      kinematicsV: [['u', 'Initial velocity (m/s)'], ['a', 'Acceleration (m/s²)'], ['t', 'Time (s)']],
+      kinematicsS: [['u', 'Initial velocity (m/s)'], ['a', 'Acceleration (m/s²)'], ['t', 'Time (s)']],
+      force: [['m', 'Mass (kg)'], ['a', 'Acceleration (m/s²)']],
+      work: [['f', 'Force (N)'], ['d', 'Distance (m)']],
+      power: [['w', 'Work (J)'], ['t', 'Time (s)']],
+      ohms: [['i', 'Current (A)'], ['r', 'Resistance (Ω)']],
+      ohmsCurrent: [['v', 'Voltage (V)'], ['r', 'Resistance (Ω)']],
+      ohmsResistance: [['v', 'Voltage (V)'], ['i', 'Current (A)']],
+      quadratic: [['a', 'Coefficient a'], ['b', 'Coefficient b'], ['c', 'Coefficient c']],
+      scientific: [['x', 'Number'], ['angle', 'Angle (degrees)']]
+    };
+    const renderEngineeringFields = () => {
+      const formula = document.querySelector('#engineeringFormula').value;
+      const fields = engineeringFields[formula];
+      const operation = formula === 'scientific' ? '<select id="engineering-operation"><option value="sqrt">Square root</option><option value="sin">sin</option><option value="cos">cos</option><option value="tan">tan</option><option value="ln">Natural log</option></select>' : '';
+      document.querySelector('#engineeringInputs').innerHTML = operation + fields.map(([id, label]) =>
+        `<input id="engineering-${id}" type="number" step="any" placeholder="${label}">`).join('');
+      document.querySelector('#engineeringResult').textContent = 'Enter values to calculate';
+      document.querySelector('#engineeringNote').textContent = formula === 'scientific'
+        ? 'For sin, cos, and tan, the angle is interpreted in degrees.'
+        : 'Use SI units: metres, seconds, kilograms, newtons, joules, watts, volts, amps, and ohms.';
+    };
+    const calculateEngineering = () => {
+      const formula = document.querySelector('#engineeringFormula').value;
+      const read = id => Number(document.querySelector(`#engineering-${id}`).value);
+      const values = engineeringFields[formula].map(([id]) => read(id));
+      if (values.some(value => !Number.isFinite(value))) {
+        document.querySelector('#engineeringResult').textContent = 'Enter every value';
+        return;
+      }
+      let answer, unit, label;
+      if (formula === 'kinematicsV') { answer = values[0] + values[1] * values[2]; unit = 'm/s'; label = 'Final velocity'; }
+      if (formula === 'kinematicsS') { answer = values[0] * values[2] + .5 * values[1] * values[2] ** 2; unit = 'm'; label = 'Distance'; }
+      if (formula === 'force') { answer = values[0] * values[1]; unit = 'N'; label = 'Force'; }
+      if (formula === 'work') { answer = values[0] * values[1]; unit = 'J'; label = 'Work'; }
+      if (formula === 'power') { answer = values[1] === 0 ? NaN : values[0] / values[1]; unit = 'W'; label = 'Power'; }
+      if (formula === 'ohms') { answer = values[0] * values[1]; unit = 'V'; label = 'Voltage'; }
+      if (formula === 'ohmsCurrent') { answer = values[1] === 0 ? NaN : values[0] / values[1]; unit = 'A'; label = 'Current'; }
+      if (formula === 'ohmsResistance') { answer = values[1] === 0 ? NaN : values[0] / values[1]; unit = 'Ω'; label = 'Resistance'; }
+      if (formula === 'quadratic') {
+        const discriminant = values[1] ** 2 - 4 * values[0] * values[2];
+        answer = values[0] === 0 ? NaN : (-values[1] + Math.sqrt(discriminant)) / (2 * values[0]);
+        unit = ''; label = 'Positive root';
+      }
+      if (formula === 'scientific') {
+        const radians = values[1] * Math.PI / 180;
+        answer = Math.sqrt(values[0]); unit = ''; label = '√x';
+        const operation = document.querySelector('#engineering-operation').value;
+        if (operation === 'sin') { answer = Math.sin(radians); label = 'sin'; }
+        if (operation === 'cos') { answer = Math.cos(radians); label = 'cos'; }
+        if (operation === 'tan') { answer = Math.tan(radians); label = 'tan'; }
+        if (operation === 'ln') { answer = Math.log(values[0]); label = 'ln'; }
+      }
+      document.querySelector('#engineeringResult').textContent = Number.isFinite(answer) ? `${label} = ${format(answer)} ${unit}` : 'No real result';
+    };
+    const fetchRates = async () => {
+      showRateStatus('Updating rates…');
+      try {
+        const response = await fetch('https://open.er-api.com/v6/latest/USD');
+        if (!response.ok) throw new Error('Currency service unavailable');
+        const data = await response.json();
+        if (data.result !== 'success' || !data.rates) throw new Error('Invalid rate data');
+        rates = { ...rates, ...data.rates, USD: 1 };
+        localStorage.setItem('currencyRates', JSON.stringify(rates));
+        showRateStatus(`Updated ${new Date().toLocaleString()}`);
+        updateCurrency();
+      } catch (error) {
+        showRateStatus('Could not update online; showing saved rates');
+      }
+    };
+    const openPanel = id => document.querySelector(`#${id}`).classList.add('open');
+    const closePanel = id => document.querySelector(`#${id}`).classList.remove('open');
+    const beep = () => {
+      if (!settings.sound) return;
+      const audio = new AudioContext(), oscillator = audio.createOscillator(), gain = audio.createGain();
+      oscillator.frequency.value = 540; gain.gain.value = .025; oscillator.connect(gain); gain.connect(audio.destination);
+      oscillator.start(); oscillator.stop(audio.currentTime + .035);
+    };
+    const calculate = (a, op, b) => ({ '+': a + b, '−': a - b, '×': a * b, '÷': b === 0 ? Infinity : a / b }[op]);
+    function number(n) {
+      if (waiting || value === 'Error') { value = n; waiting = false; }
+      else value = value === '0' ? n : value + n;
+      render();
+    }
+    function choose(op) {
+      const current = Number(value);
+      if (stored !== null && operator && !waiting) stored = calculate(stored, operator, current);
+      else stored = current;
+      operator = op; waiting = true; shown = `${format(stored)} ${op}`; render();
+    }
+    function equals() {
+      if (stored === null || !operator) return;
+      const current = Number(value), left = stored, answer = calculate(left, operator, current);
+      shown = `${format(left)} ${operator} ${format(current)} =`;
+      value = format(answer); stored = null; operator = null; waiting = true; render();
+      history.unshift({ expression: shown, answer: value });
+      history.splice(30); save(); renderHistory();
+    }
+    document.querySelectorAll('button').forEach(b => b.addEventListener('click', beep));
+    document.querySelectorAll('[data-number]').forEach(b => b.onclick = () => number(b.dataset.number));
+    document.querySelectorAll('[data-op]').forEach(b => b.onclick = () => choose(b.dataset.op));
+    document.querySelector('[data-action="equals"]').onclick = equals;
+    document.querySelector('[data-action="clear"]').onclick = () => { value = '0'; stored = null; operator = null; waiting = false; shown = ''; render(); };
+    document.querySelector('[data-action="decimal"]').onclick = () => { if (waiting) { value = '0.'; waiting = false; } else if (!value.includes('.')) value += '.'; render(); };
+    document.querySelector('[data-action="sign"]').onclick = () => { if (value !== '0') value = value.startsWith('-') ? value.slice(1) : '-' + value; render(); };
+    document.querySelector('[data-action="percent"]').onclick = () => { value = format(Number(value) / 100); render(); };
+    document.querySelector('[data-action="backspace"]').onclick = () => { if (!waiting) value = value.length > 1 ? value.slice(0, -1) : '0'; render(); };
+    document.querySelector('#historyButton').onclick = () => { renderHistory(); openPanel('historyPanel'); };
+    document.querySelector('#settingsButton').onclick = () => openPanel('settingsPanel');
+    const modeButton = document.createElement('button');
+    modeButton.className = 'panel-action';
+    modeButton.textContent = 'Open currency converter';
+    modeButton.onclick = () => { closePanel('settingsPanel'); openPanel('currencyPanel'); updateCurrency(); fetchRates(); };
+    document.querySelector('#settingsPanel .panel-card').appendChild(modeButton);
+    const budgetButton = document.createElement('button');
+    budgetButton.className = 'panel-action';
+    budgetButton.textContent = 'Open budget manager';
+    budgetButton.onclick = () => { closePanel('settingsPanel'); openPanel('budgetPanel'); renderBudget(); };
+    document.querySelector('#settingsPanel .panel-card').appendChild(budgetButton);
+    const engineeringButton = document.createElement('button');
+    engineeringButton.className = 'panel-action';
+    engineeringButton.textContent = 'Open physics & engineering';
+    engineeringButton.onclick = () => { closePanel('settingsPanel'); openPanel('engineeringPanel'); renderEngineeringFields(); };
+    document.querySelector('#settingsPanel .panel-card').appendChild(engineeringButton);
+    document.querySelector('#engineeringFormula').onchange = renderEngineeringFields;
+    document.querySelector('#calculateEngineering').onclick = calculateEngineering;
+    document.querySelector('#currencyAmount').oninput = updateCurrency;
+    document.querySelector('#fromCurrency').onchange = updateCurrency;
+    document.querySelector('#toCurrency').onchange = updateCurrency;
+    document.querySelector('#swapCurrency').onclick = () => {
+      const from = document.querySelector('#fromCurrency'), to = document.querySelector('#toCurrency');
+      [from.value, to.value] = [to.value, from.value]; updateCurrency();
+    };
+    document.querySelector('#refreshRates').onclick = fetchRates;
+    document.querySelector('#setBudgetLimit').onclick = () => {
+      const input = document.querySelector('#budgetLimitInput');
+      const limit = Number(input.value);
+      if (!Number.isFinite(limit) || limit < 0 || !input.value) return;
+      budget.limit = limit;
+      input.value = '';
+      saveBudget();
+      renderBudget();
+    };
+    document.querySelector('#addBudgetEntry').onclick = () => {
+      const amount = Number(document.querySelector('#budgetAmount').value);
+      if (!Number.isFinite(amount) || amount <= 0) return;
+      budget.entries.push({
+        description: document.querySelector('#budgetDescription').value.trim(),
+        amount,
+        type: document.querySelector('#budgetType').value,
+        category: document.querySelector('#budgetCategory').value,
+        date: new Date().toLocaleDateString()
+      });
+      const limit = Number(document.querySelector('#budgetLimitInput').value);
+      if (Number.isFinite(limit) && limit >= 0 && document.querySelector('#budgetLimitInput').value) budget.limit = limit;
+      document.querySelector('#budgetDescription').value = '';
+      document.querySelector('#budgetAmount').value = '';
+      document.querySelector('#budgetLimitInput').value = '';
+      saveBudget(); renderBudget();
+    };
+    document.querySelector('#clearBudget').onclick = () => {
+      budget.entries.length = 0; saveBudget(); renderBudget();
+    };
+    document.querySelector('#clearHistory').onclick = () => { history.length = 0; save(); renderHistory(); };
+    document.querySelectorAll('[data-close]').forEach(b => b.onclick = () => closePanel(b.dataset.close));
+    document.querySelector('#theme').value = settings.theme;
+    document.querySelector('#precision').value = settings.precision;
+    document.querySelector('#sound').checked = settings.sound;
+    document.querySelector('#theme').onchange = e => { settings.theme = e.target.value; document.body.classList.toggle('light', settings.theme === 'light'); save(); };
+    document.querySelector('#precision').onchange = e => { settings.precision = e.target.value; save(); render(); };
+    document.querySelector('#sound').onchange = e => { settings.sound = e.target.checked; save(); };
+    document.body.classList.toggle('light', settings.theme === 'light');
+    populateCurrencies();
+    updateCurrency();
+    renderEngineeringFields();
+    renderBudget();
+    renderHistory();
+    window.addEventListener('keydown', e => {
+      if (/^[0-9]$/.test(e.key)) number(e.key);
+      else if (e.key === '.') document.querySelector('[data-action="decimal"]').click();
+      else if (e.key === 'Enter' || e.key === '=') equals();
+      else if (e.key === 'Escape') document.querySelector('[data-action="clear"]').click();
+      else if (e.key === 'Backspace') document.querySelector('[data-action="backspace"]').click();
+      else if ({'+':'+','-':'−','*':'×','/':'÷'}[e.key]) choose({'+':'+','-':'−','*':'×','/':'÷'}[e.key]);
+    });
+  </script>
+</body>
+</html>
